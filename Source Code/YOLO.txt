@@ -1,0 +1,202 @@
+Yolo Object Detection
+
+import cv2
+import imutils
+import numpy as np 
+#import serial import time
+import cv2 
+import imutils
+import numpy as np
+from subprocess import call 
+import time
+import datetime 
+import os 
+import glob 
+import smtplib 
+import base64 
+import urllib
+from email.mime.image 
+import MIMEImage
+from email.mime.multipart 
+import MIMEMultipart from email.mime.text 
+import MIMEText
+import random 
+import time 
+import subprocess
+import webbrowser 
+import sys
+import socket 
+import json 
+import twilio 
+import geopy
+from urllib.request 
+import urlopen
+
+
+#https://outlook.live.com/mail/0/options/mail/accounts/popImap 
+yahoo_user = "akshaya1661@outlook.com"
+yahoo_pwd = "akshayaram1661" 
+FROM = 'akshaya1661@outlook.com'
+TO = ['akshaya1661@outlook.com'] #must be a list
+ 
+
+# Load Yolo
+net = cv2.dnn.readNet("yolov5_training_2000.weights", "yolov5_testing.cfg") 
+#weapon
+#net = cv2.dnn.readNet("yolov5.weights", "yolov5.cfg") 
+classes = []
+with open("coco.names", "r") as f:
+classes = [line.strip() for line in f.readlines()] 
+layer_names = net.getLayerNames()
+output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
+colors = np.random.uniform(0, 255, size=(len(classes), 3))
+
+def safe():
+#map tracking
+# Get GPS coordinates from geopy
+from geopy.geocoders import Nominatim
+geolocator = Nominatim(user_agent="geoapiExercises")
+
+# Open following URL to get IP address
+data = json.load(urlopen("http://ipinfo.io/json"))
+
+lat = '13.0497281'
+lon = '80.0751739'
+# Extract latitude and longitude 
+#lat = data['loc'].split(',')[0]
+#lon = data['loc'].split(',')[1]
+
+# Get location address from GPS coordinates 
+location = geolocator.reverse(lat + "," + lon)
+
+# Construct Google Maps link
+maps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+
+# Print address and Google Maps link 
+print("Current location: " + location.address) 
+print("Google Maps link: " + maps_url)
+
+# Open Google Maps link in default browser 
+webbrowser.open(maps_url)
+
+#sms alert
+# Import required libraries from twilio.rest import Client
+
+# Define your Twilio account SID and auth token account_sid = 'ACe30d2c962e883f99562ef210c8b441ba' auth_token = 'f09bfb1dde1f285ecb676891b70f94b7'
+
+# Create a Twilio client object
+client = Client(account_sid, auth_token)
+
+# Define the sender and recipient phone numbers sender = '+14346239728' # your Twilio phone number
+recipient = '+919551166631' # the recipient phone number
+
+# Define the message to be sent
+message = " Abnormal Activity Detected "+maps_url
+
+# Send the message using the client object message = client.messages.create(
+body=message, from_=sender, to=recipient
+)
+
+#print(message.sid)
+
+
+#mail system
+msg = MIMEMultipart() time.sleep(1)
+msg['Subject'] ="HOME SECURITY EMERGENCY ALERT"
+
+#BODY with 2 argument #variable = maps_url #body=sys.argv[1]+sys.argv[2]
+body= "Google Map Location is "+maps_url
+ 
+msg.attach(MIMEText(body,'plain')) time.sleep(1)
+
+
+###IMAGE
+fp = open("1.png", 'rb')
+time.sleep(1)
+img = MIMEImage(fp.read()) 
+time.sleep(1)
+fp.close() 
+time.sleep(1) 
+msg.attach(img) 
+time.sleep(1) 
+try:
+server = smtplib.SMTP("smtp.office365.com", 587) 
+#or port 465 doesn't seem to work!
+print ("smtp.outlook") 
+server.ehlo()
+print ("ehlo") 
+server.starttls()
+print ("starttls") 
+server.login(yahoo_user, yahoo_pwd)
+print ("reading mail & password") 
+server.sendmail(FROM, TO, msg.as_string())
+print ("from") 
+server.close()
+print ('successfully sent the mail') 
+except:
+print ("failed to send mail") 
+
+# Loading image
+cap = cv2.VideoCapture(0) while True:
+
+ret,img=cap.read()
+img = imutils.resize(img, width=720) height, width, channels = img.shape
+
+# Detecting objects
+blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+net.setInput(blob)
+outs = net.forward(output_layers)
+
+# Showing informations on the screen class_ids = []
+confidences = [] boxes = []
+for out in outs:
+for detection in out: 
+scores = detection[5:]
+class_id = np.argmax(scores) 
+confidence = scores[class_id] 
+if confidence > 0.5:
+# Object detected 
+center_x = int(detection[0] * width) 
+center_y = int(detection[1] * height)
+w = int(detection[2] * width) 
+h = int(detection[3] * height)
+
+# Rectangle coordinates x = int(center_x - w / 2) y = int(center_y - h / 2)
+boxes.append([x, y, w, h]) 
+confidences.append(float(confidence)) 
+class_ids.append(class_id)
+
+indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4) 
+font = cv2.FONT_HERSHEY_PLAIN
+for i in range(len(boxes)): 
+if i in indexes:
+x, y, w, h = boxes[i]
+label = str(classes[class_ids[i]]) 
+color = colors[i]
+cv2.rectangle(img, (x, y), (x + w, y + h), color, 2) 
+cv2.putText(img, label, (x, y + 30), font, 3, color, 3)
+cv2.putText(img, datetime.datetime.now().strftime("%A %d %B %Y 
+%I:%M:%S%p"),
+(10, img.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 
+0, 255), 1)
+if(label == "guns"):
+cv2.imwrite("1.png",img)
+safe() 
+time.sleep(5)
+print(label) 
+elif(label == "knife"):
+cv2.imwrite("1.png",img)
+safe() 
+time.sleep(5)
+print(label) 
+frametime = 100
+# show the output frame 
+cv2.imshow("Frame", img)
+key = cv2.waitKey(frametime) & 0xFF
+
+# if the `q` key was pressed, break from the loop 
+if key == ord("q"):
+break 
+cv2.destroyAllWindows()
+
+
